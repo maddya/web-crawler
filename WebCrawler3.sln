@@ -1,13 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.25920.0
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{CC5FD16D-436D-48AD-A40C-5A424C6E3E79}") = "WebCrawler3", "WebCrawler3\WebCrawler3.ccproj", "{716A3688-744F-4D08-9FD2-5841C51FFBF1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebRole1", "WebRole1\WebRole1.csproj", "{71DD8943-B90D-4799-B821-34051C38C5F3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkerRole1", "WorkerRole1\WorkerRole1.csproj", "{8E9F59AE-D8BF-4B3F-A8C8-41AE28956A9A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Portable", "ClassLibrary\Portable.csproj", "{7138B44B-0073-4C2D-8E87-2EEE1D5735B9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +29,10 @@ Global
 		{8E9F59AE-D8BF-4B3F-A8C8-41AE28956A9A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8E9F59AE-D8BF-4B3F-A8C8-41AE28956A9A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8E9F59AE-D8BF-4B3F-A8C8-41AE28956A9A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7138B44B-0073-4C2D-8E87-2EEE1D5735B9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7138B44B-0073-4C2D-8E87-2EEE1D5735B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7138B44B-0073-4C2D-8E87-2EEE1D5735B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7138B44B-0073-4C2D-8E87-2EEE1D5735B9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
