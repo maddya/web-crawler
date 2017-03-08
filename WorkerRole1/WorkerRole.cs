@@ -9,6 +9,9 @@ using Microsoft.WindowsAzure;
 using Microsoft.WindowsAzure.Diagnostics;
 using Microsoft.WindowsAzure.ServiceRuntime;
 using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Queue;
+using Microsoft.WindowsAzure.Storage.Table;
+using Portable;
 
 namespace WorkerRole1
 {
@@ -17,21 +20,97 @@ namespace WorkerRole1
         private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
         private readonly ManualResetEvent runCompleteEvent = new ManualResetEvent(false);
 
-        public override void Run()
-        {
-            Trace.TraceInformation("WorkerRole1 is running");
+		public static string State { get; private set; }
+		private static PerformanceCounter CPUCount;
+		private static PerformanceCounter MemCount;
 
-            try
-            {
-                this.RunAsync(this.cancellationTokenSource.Token).Wait();
-            }
-            finally
-            {
-                this.runCompleteEvent.Set();
-            }
-        }
+		private static iStorageAccount Storage { get; set; }
+		private static CloudQueue LoadQueue { get; set; }
+		private static CloudQueue CrawlQueue { get; set; }
+		private static CloudQueue StopQueue { get; set; }
+		private static CloudTable SiteDataTable { get; set; }
+		private static CloudTable AdminStatusTable { get; set; }
+		private static AdminStatus Status { get; set; }
+		private static WebCrawler Crawler;
 
-        public override bool OnStart()
+		public override void Run()
+		{
+			Storage = new AzureStorage();
+
+			LoadQueue = CloudConfiguration.GetLoadingQueue();
+			CrawlQueue = CloudConfiguration.GetCrawlingQueue();
+			StopQueue = CloudConfiguration.GetStopQueue();
+			SiteDataTable = CloudConfiguration.GetSiteDataTable();
+			AdminStatusTable = CloudConfiguration.GetAdminStatusTable();
+
+			State = "Idle";
+
+			CPUCount = new PerformanceCounter("Processor", "% Processor Time", "_Total");
+			MemCount = new PerformanceCounter("Memory", "Available MBytes");
+
+			Status = new AdminStatus(State, (int)CPUCount.NextValue(), (int)MemCount.NextValue());
+
+			string[] robots = { "http://www.cnn.com/robots.txt", "http://www.bleacherreport.com/robots.txt" };
+			Crawler = new WebCrawler(robots, Storage);
+
+			Thread.Sleep(10000);
+
+			CloudQueueMessage stopMessage = StopQueue.GetMessage();
+
+			string url = "";
+
+			while (true)
+			{
+				while (stopMessage == null)
+				{
+					// Get the next message
+					CloudQueueMessage loadMessage = LoadQueue.GetMessage();
+
+					if (loadMessage != null)
+					{
+						State = "Loading";
+						url = loadMessage.AsString;
+						if (url.Contains("robots.txt"))
+						{
+							foreach(string link in robots)
+							{
+								Crawler.ProcessURL(link);
+							}
+							LoadQueue.DeleteMessage(loadMessage);
+						}
+						else
+						{
+							Crawler.ProcessURL(url);
+						}
+					}
+					else if (State.Equals("Loading") || State.Equals("Crawling"))
+					{
+						CloudQueueMessage crawlMessage = CrawlQueue.GetMessage();
+						// dequeue crawl message
+						if (crawlMessage != null)
+						{
+							State = "Crawling";
+							url = crawlMessage.AsString;
+							Crawler.ProcessURL(url);
+							CrawlQueue.DeleteMessage(crawlMessage);
+						}
+					}
+					stopMessage = StopQueue.GetMessage();
+					UpdateDashboard(url);
+				}
+				State = "Idle";
+			}
+		}
+
+		private void UpdateDashboard(string url)
+		{
+			CrawlQueue.FetchAttributes();
+			Status.UpdateStatus(State, (int)CPUCount.NextValue(), (int)MemCount.NextValue(), url, CrawlQueue.ApproximateMessageCount.ToString());
+			TableOperation insertOperation = TableOperation.InsertOrReplace(Status);
+			AdminStatusTable.ExecuteAsync(insertOperation);
+		}
+
+		public override bool OnStart()
         {
             // Set the maximum number of concurrent connections
             ServicePointManager.DefaultConnectionLimit = 12;

@@ -6,6 +6,14 @@ using System.Web.Services;
 using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage.Table;
 using Portable;
+using WorkerRole1;
+using System.Web.Script.Services;
+using System.Web.Script.Serialization;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
 namespace WebRole1
 {
@@ -34,7 +42,12 @@ namespace WebRole1
 		private CloudQueue LoadQueue { get; set; }
         private CloudQueue CrawlQueue { get; set; }
         private CloudQueue StopQueue { get; set; }
-        private CloudTable Table { get; set; }
+        private CloudTable SiteDataTable { get; set; }
+		private CloudTable AdminStatusTable { get; set; }
+		private CloudTable ErrorTable { get; set; }
+		private static Dictionary<string, List<string>> cache = new Dictionary<string, List<string>>();
+
+		static HttpClient client = new HttpClient();
 
 		[WebMethod]
 		public string StartCrawler()
@@ -50,13 +63,10 @@ namespace WebRole1
 			LoadQueue = CloudConfiguration.GetLoadingQueue();
 
 			//Add message
-			CloudQueueMessage cnnRobots = new CloudQueueMessage("http://www.cnn.com/robots.txt");
-			LoadQueue.AddMessage(cnnRobots);
+			CloudQueueMessage startMessage = new CloudQueueMessage("http://www.cnn.com/robots.txt http://www.bleacherreport.com/robots.txt");
+			LoadQueue.AddMessage(startMessage);
 
-			CloudQueueMessage bleacherReportRobots = new CloudQueueMessage("http://www.bleacherreport.com/robots.txt");
-			LoadQueue.AddMessage(bleacherReportRobots);
-
-			return LoadQueue.Name + " " + cnnRobots.AsString + " " + bleacherReportRobots.AsString;
+			return LoadQueue.Name + " " + startMessage.AsString;
 		}
 
 		[WebMethod]
@@ -66,41 +76,69 @@ namespace WebRole1
 			CloudQueueMessage stopSignal = new CloudQueueMessage("stop");
 			StopQueue.AddMessage(stopSignal);
 			return StopQueue.Name + " " + stopSignal.AsString;
-
 		}
 
 		[WebMethod]
-		public string GetPageTitle(string URL)
+		[ScriptMethod(ResponseFormat = ResponseFormat.Json)]
+		public string GetSearchResults(string query)
 		{
-			// Retrieve data from index (get page title for specific URL)
-			Table = CloudConfiguration.GetTable();
-			Table.CreateIfNotExists();
-
-			string encodedURL = Base64.Base64Encode(URL);
-
-			TableQuery<URLEntity> rangeQuery = new TableQuery<URLEntity>()
-				.Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, encodedURL));
-
-			var data = Table.ExecuteQuery(rangeQuery);
-
-			if (data != null)
+			SiteDataTable = CloudConfiguration.GetSiteDataTable();
+			query = query.Trim().ToLower();
+			if (cache.ContainsKey(query))
 			{
-				string title = data.First().Title;
-				return title;
+				return new JavaScriptSerializer().Serialize(cache[query]);
 			}
 			else
 			{
-				return $"URl {URL} not found in table storage";
+				var keywords = query.Split(null)
+					.Select(x => Base64.Base64Encode(x));
+
+				var results = new List<URLEntity>();
+
+				foreach (string keyword in keywords)
+				{
+					TableQuery<URLEntity> rangeQuery = new TableQuery<URLEntity>()
+					.Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, keyword));
+
+					var data = SiteDataTable.ExecuteQuery(rangeQuery);
+					results.AddRange(data);
+				}
+
+				var siteMatches = results.GroupBy(x => x.URL)
+						.Select(group => new Tuple<string, int, string>(group.Key, group.Count(), group.First().Title))
+						.OrderByDescending(tuple => tuple.Item2);
+
+				var links = siteMatches.Select(x => x.Item1 + "$" + x.Item3).ToList<string>();
+				cache.Add(query, links);
+				return new JavaScriptSerializer().Serialize(links);
 			}
 		}
 
 		[WebMethod]
 		public void ClearEverything()
 		{
-			Table.DeleteIfExists();
+			SiteDataTable.DeleteIfExists();
 			LoadQueue.DeleteIfExists();
 			CrawlQueue.DeleteIfExists();
 			StopQueue.DeleteIfExists();
+		}
+
+		[WebMethod]
+		[ScriptMethod(ResponseFormat = ResponseFormat.Json)]
+		public string GetStatus()
+		{
+			AdminStatusTable = CloudConfiguration.GetAdminStatusTable();
+			var status = AdminStatusTable.ExecuteQuery(new TableQuery<AdminStatus>()).ToList();
+			return new JavaScriptSerializer().Serialize(status);
+		}
+
+		[WebMethod]
+		[ScriptMethod(ResponseFormat = ResponseFormat.Json)]
+		public string GetErrors()
+		{
+			ErrorTable = CloudConfiguration.GetErrorTable();
+			var errors = AdminStatusTable.ExecuteQuery(new TableQuery<ErrorListEntity>()).ToList();
+			return new JavaScriptSerializer().Serialize(errors);
 		}
 
 	}

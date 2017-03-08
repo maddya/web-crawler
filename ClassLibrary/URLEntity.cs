@@ -9,10 +9,10 @@ namespace Portable
 {
 	public class URLEntity : TableEntity
 	{
-		public URLEntity(string URL, string title, DateTime date)
+		public URLEntity(string URL, string keyword, string title, DateTime date)
 		{
-			this.PartitionKey = Base64.Base64Encode(URL);
-			this.RowKey = title;
+			this.PartitionKey = Base64.Base64Encode(keyword);
+			this.RowKey = Base64.Base64Encode(title);
 			this.URL = URL;
 			this.Title = title;
 			this.Date = date;

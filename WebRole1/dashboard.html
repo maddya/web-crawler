@@ -1,0 +1,81 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8" />
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+	<!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+	<!-- Optional theme -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+	<!-- Latest compiled and minified JavaScript -->
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+	<title>WebCrawler</title>
+</head>
+<body>
+	<div class="container">
+		<button id="startButton" type="button" class="btn btn-primary">Start Crawling</button>
+		<button type="button" class="btn btn-primary">Stop Crawling</button>
+		<button type="button" class="btn btn-primary">Reset</button>
+		<p>Crawler is currently <span id="state">BLANK</span></p>
+		<p>CPU Utilization% = <span id="cpu"></span></p>
+		<p>RAM Available = <span id="ram"></span></p>
+		<p>Number URLs Crawled = <span id="numCrawled"></span></p>
+		<p>Number URLs Left to Crawl = <span id="numToCrawl"></span></p>
+		<p>Error URLs:<span id="errors"></span></p>
+		<button type="button" class="btn btn-primary" id="refresh">refresh</button>
+		<button type="button" class="btn btn-primary" id="refreshErrors">refresh errors</button>
+	</div>
+
+	<script>
+        setInterval(function () {
+        	$("#refresh").trigger("click");
+        	$("refreshErrors").trigger("click");
+        }, 500);
+
+        $("#refresh").click(function () {
+        	$.ajax({
+        		type: "POST",
+        		url: "Admin.asmx/getStatus",
+        		data: "{}",
+        		contentType: "application/json; charset=utf-8",
+        		dataType: "json",
+        		success: function (msg) {
+        			//console.log("success");
+        			var arr = msg.d;
+        			arr = arr.replace("{", "");
+        			arr = arr.replace("}", "");
+        			var data = arr.split(",");
+        			$("#state").text(data[0].split(":")[1].replace("\"", "").replace("\"", ""));
+        			$("#cpu").text(data[1].split(":")[1]);
+        			$("#ram").text(data[2].split(":")[1]);
+        			$("#numCrawled").text(data[3].split(":")[1]);
+        			$("#numToCrawl").text(data[6].split(":")[1].replace("\"", "").replace("\"", ""));
+        			//console.log(arr);
+        		},
+        		error: function (msg) {
+        			console.log("failure");
+        		}
+        	});
+        });
+
+        $("#refreshErrors").click(function () {
+        	$.ajax({
+        		type: "POST",
+        		url: "Admin.asmx/getErrors",
+        		data: "{}",
+        		contentType: "application/json; charset=utf-8",
+        		dataType: "json",
+        		success: function (msg) {
+        			console.log("success");
+        			var arr = msg.d;
+        			console.log(arr);
+        		},
+        		error: function (msg) {
+        			console.log("failure");
+        		}
+        	});
+        });
+
+	</script>
+</body>
+</html>

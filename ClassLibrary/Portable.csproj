@@ -69,8 +69,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AdminStatus.cs" />
+    <Compile Include="AzureStorage.cs" />
     <Compile Include="Base64.cs" />
     <Compile Include="CloudConfiguration.cs" />
+    <Compile Include="ErrorListEntity.cs" />
+    <Compile Include="iStorageAccount.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="URLEntity.cs" />
   </ItemGroup>

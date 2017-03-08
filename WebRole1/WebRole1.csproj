@@ -78,6 +78,12 @@
       <HintPath>..\packages\Newtonsoft.Json.8.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Net.Http.Formatting, Version=5.2.3.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.WebApi.Client.5.2.3\lib\net45\System.Net.Http.Formatting.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Runtime.Caching" />
     <Reference Include="System.Spatial, Version=5.8.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Spatial.5.8.2\lib\net40\System.Spatial.dll</HintPath>
       <Private>True</Private>
@@ -100,6 +106,8 @@
     <Reference Include="System.EnterpriseServices" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="getQuerySuggestions.asmx" />
+    <Content Include="index.html" />
     <Content Include="packages.config" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
@@ -110,7 +118,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Admin.asmx" />
-    <Content Include="index.html" />
+    <Content Include="dashboard.html" />
     <Content Include="Web.config">
       <SubType>Designer</SubType>
     </Content>
@@ -120,13 +128,23 @@
       <DependentUpon>Admin.asmx</DependentUpon>
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="getQuerySuggestions.asmx.cs">
+      <DependentUpon>getQuerySuggestions.asmx</DependentUpon>
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Trie.cs" />
+    <Compile Include="TrieNode.cs" />
     <Compile Include="WebRole.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ClassLibrary\Portable.csproj">
       <Project>{7138B44B-0073-4C2D-8E87-2EEE1D5735B9}</Project>
       <Name>Portable</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\WorkerRole1\WorkerRole1.csproj">
+      <Project>{8E9F59AE-D8BF-4B3F-A8C8-41AE28956A9A}</Project>
+      <Name>WorkerRole1</Name>
     </ProjectReference>
   </ItemGroup>
   <PropertyGroup>

@@ -39,10 +39,26 @@ namespace Portable
 			return queue;
 		}
 
-		public static CloudTable GetTable()
+		public static CloudTable GetSiteDataTable()
 		{
 			CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
 			CloudTable table = tableClient.GetTableReference("sitedatatable");
+			table.CreateIfNotExists();
+			return table;
+		}
+
+		public static CloudTable GetAdminStatusTable()
+		{
+			CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
+			CloudTable table = tableClient.GetTableReference("adminstatustable");
+			table.CreateIfNotExists();
+			return table;
+		}
+
+		public static CloudTable GetErrorTable()
+		{
+			CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
+			CloudTable table = tableClient.GetTableReference("errortable");
 			table.CreateIfNotExists();
 			return table;
 		}

@@ -1,28 +1,172 @@
 ﻿<!DOCTYPE html>
 <html>
 <head>
+	<script>
+		function updateResults(data) {
+			console.log('jsonp success');
+			$("#playerResults").empty();
+			var userData = $('[name=query]').val().trim().toLowerCase();
+			if (data.length == 0) {
+				console.log("no data returned");
+			} else if (data.Name.toLowerCase() == userData) {
+				var tbl = $('<table style="width:100%"></table>').attr({ id: "playerData" });
+				var headers = $('<tr></tr>');
+				var stats = $('<tr></tr>');
+				$.each(data, function (key, value) {
+					key = key.replace("Percent", "%");
+					key = key.replace("Three", "3");
+					var category = $('<th></th>').text(key).appendTo(headers);
+					var info = $('<td></td>').text(value).appendTo(stats);
+				});
+				headers.appendTo(tbl);
+				stats.appendTo(tbl);
+				tbl.appendTo($("#playerResults"));
+			}
+		}
+	</script>
+	<title></title>
 	<meta charset="utf-8" />
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
-	<!-- Latest compiled and minified CSS -->
-	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
-	<!-- Optional theme -->
-	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
-	<!-- Latest compiled and minified JavaScript -->
-	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
-	<title>WebCrawler</title>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+	<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 </head>
+
 <body>
-	<div class="container">
-		<button id="startButton" type="button">Start Crawling</button>
-		<button type="button">Stop Crawling</button>
-		<button type="button">Reset</button>
-		<p>Crawler is currently BLANK</p>
-		<p>CPU Utilization% = </p>
-		<p>RAM Available = </p>
-		<p>Number URLs Crawled = </p>
-		<p>Number URLs Left to Crawl = </p>
-		<p>Size of index (Table storage with our crawled data)</p>
-		<p>Error URLs:</p>
-	</div>
+	<script>
+		function getAllSearchData() {
+			var userData = $('[name=query]').val().trim();
+			//getSearchSuggestions(userData);
+			getResults(userData);
+			getPlayers(userData);
+		}
+
+        function getSearchSuggestions(userData) {
+            var _this = $(this);
+            var obj = { input: userData };
+            console.log("getSearchSuggestions()");
+            if (userData == "") {
+                $("#suggestions").empty();
+            }
+            else {
+                $.ajax({
+                    type: "POST",
+                    url: "getQuerySuggestions.asmx/SearchTrie",
+                    data: JSON.stringify(obj),
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json",
+                    success: function (msg) {
+                        $("#suggestions").empty();
+                        console.log(msg);
+                        var arr = msg.d;
+                        arr = arr.replace("[", "");
+                        arr = arr.replace("]", "");
+                        var data = arr.split(",");
+                        var suggestions = "";
+                        data.forEach(function (word) {
+                            word = word.replace("\"", "");
+                            word = word.replace("\"", "");
+                            $("<option/>").html(word).appendTo("#suggestions");
+                        });
+                        _this.focus();
+                    },
+                    error: function (msg) {
+                        console.log(msg);
+                    }
+                });
+            }
+        }
+
+        function getResults(userData) {
+        	console.log("getResults() method called");
+        	var _this = $(this);
+        	var obj = { query: userData };
+        	console.log("input = " + userData);
+        	if (userData == "") {
+        		$("#jsonDiv").empty();
+        	}
+        	else {
+        		$.ajax({
+        			type: "POST",
+        			url: "Admin.asmx/GetSearchResults",
+        			data: JSON.stringify(obj),
+        			contentType: "application/json; charset=utf-8",
+        			dataType: "json",
+        			success: function (msg) {
+        				var resultDiv = $("#jsonDiv");
+        				resultDiv.empty();
+        				var list = $('<ul></ul>').attr({ id: "searchResults" }).appendTo(resultDiv);
+        				console.log(msg.d);
+        				var data = $.parseJSON(msg.d);
+        				for (var i = 0; i < data.length; i++) {
+        					console.log(data[i]);
+							var items = data[i].split("$")
+        					var newLink = $("<a />", {
+        						href:items[0].replace("\"", ""),
+        						text: items[1].replace("\"", "")
+        					});
+        					var li = $('<li/>')
+								.append(newLink)
+								.appendTo(list);
+        				}
+        				_this.focus();
+        			},
+        			error: function (msg) {
+        				console.log(msg);
+        			}
+        		});
+        	}
+		}
+	</script>
+	<!--<script src="http://ec2-35-167-177-167.us-west-2.compute.amazonaws.com/api.php"></script>-->
+	<script>
+		function getPlayers(userData) {
+			console.log("getPlayers()");
+			var _this = $(this);
+			if (userData == "") {
+				$("#playerResults").empty();
+			}
+			else {
+				$.ajax({
+					crossDomain: true,
+					contentType: "application/json; charset=utf-8",
+					url: "http://ec2-35-167-177-167.us-west-2.compute.amazonaws.com/api.php",
+					data: { callback: 'updateResults', name: userData },
+					dataType: "jsonp"
+				});
+			}
+		}
+	</script>
+		<h1>
+			Search Query
+		</h1>
+		<div class="row">
+			<div class="col-xs-12 col-md-8">
+				<form id="formoid">
+					<div>
+						<label class="title">Enter a search query: </label>
+						<input type="text" name="query" onkeyup="getAllSearchData()" id="userInput" list="suggestions" />
+						<datalist id="suggestions"></datalist>
+					</div>
+					<div>
+						<!--<input type="submit" value="Submit" id="submit" onclick="getResults()"/>-->
+						<!--<button type="button" class="btn btn-primary" onclick="getResults()">Submit</button>-->
+						<button type="button" class="btn btn-primary" onclick="getAllSearchData()">Submit</button>
+					</div>
+				</form>
+				<div id="playerResults"></div>
+				<div id="jsonDiv"></div>
+			</div>
+			<div class="col-xs-6 col-md-4">
+				<script type="text/javascript">
+					(function () {
+						if (window.CHITIKA === undefined) { window.CHITIKA = { 'units': [] }; };
+						var unit = { "calltype": "async[2]", "publisher": "maddya", "width": 550, "height": 250, "sid": "Chitika Default" };
+						var placement_id = window.CHITIKA.units.length;
+						window.CHITIKA.units.push(unit);
+						document.write('<div id="chitikaAdBlock-' + placement_id + '"></div>');
+					}());
+				</script>
+				<script type="text/javascript" src="//cdn.chitika.net/getads.js" async></script>
+			</div>
+		</div>
 </body>
 </html>
