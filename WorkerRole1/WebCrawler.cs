@@ -73,7 +73,8 @@ namespace WorkerRole1
 			}
 			catch (Exception ex)
 			{
-				Storage.AddErrorMessage(URL);
+				CloudQueueMessage error = new CloudQueueMessage(URL);
+				CloudConfiguration.GetErrorQueue().AddMessage(error);
 			}
 		}
 

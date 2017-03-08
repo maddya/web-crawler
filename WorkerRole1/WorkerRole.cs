@@ -32,6 +32,7 @@ namespace WorkerRole1
 		private static CloudTable AdminStatusTable { get; set; }
 		private static AdminStatus Status { get; set; }
 		private static WebCrawler Crawler;
+		private static CloudQueue StateQueue { get; set; }
 
 		public override void Run()
 		{
@@ -42,6 +43,7 @@ namespace WorkerRole1
 			StopQueue = CloudConfiguration.GetStopQueue();
 			SiteDataTable = CloudConfiguration.GetSiteDataTable();
 			AdminStatusTable = CloudConfiguration.GetAdminStatusTable();
+			StateQueue = CloudConfiguration.GetStateQueue();
 
 			State = "Idle";
 
@@ -55,24 +57,28 @@ namespace WorkerRole1
 
 			Thread.Sleep(10000);
 
-			CloudQueueMessage stopMessage = StopQueue.GetMessage();
+			
 
 			string url = "";
 
 			while (true)
 			{
+
+				CloudQueueMessage stopMessage = StopQueue.GetMessage();
+
 				while (stopMessage == null)
 				{
 					// Get the next message
 					CloudQueueMessage loadMessage = LoadQueue.GetMessage();
-
+					State = "Loading";
 					if (loadMessage != null)
 					{
 						State = "Loading";
 						url = loadMessage.AsString;
 						if (url.Contains("robots.txt"))
 						{
-							foreach(string link in robots)
+							string[] robotLinks = url.Split(null);
+							foreach(string link in robotLinks)
 							{
 								Crawler.ProcessURL(link);
 							}

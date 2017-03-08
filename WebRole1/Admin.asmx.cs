@@ -42,9 +42,11 @@ namespace WebRole1
 		private CloudQueue LoadQueue { get; set; }
         private CloudQueue CrawlQueue { get; set; }
         private CloudQueue StopQueue { get; set; }
-        private CloudTable SiteDataTable { get; set; }
+		private CloudQueue StateQueue { get; set; }
+		private CloudTable SiteDataTable { get; set; }
 		private CloudTable AdminStatusTable { get; set; }
 		private CloudTable ErrorTable { get; set; }
+		private CloudQueue ErrorQueue { get; set; }
 		private static Dictionary<string, List<string>> cache = new Dictionary<string, List<string>>();
 
 		static HttpClient client = new HttpClient();
@@ -53,29 +55,40 @@ namespace WebRole1
 		public string StartCrawler()
 		{
 			StopQueue = CloudConfiguration.GetStopQueue();
-			CloudQueueMessage stopMessage = StopQueue.GetMessage();
-			while (stopMessage != null)
+			StateQueue = CloudConfiguration.GetStateQueue();
+			if (StopQueue.PeekMessage() == null)
 			{
-				StopQueue.DeleteMessage(stopMessage);
-				stopMessage = StopQueue.GetMessage();
+				LoadQueue = CloudConfiguration.GetLoadingQueue();
+				CloudQueueMessage startMessage =
+					new CloudQueueMessage("http://www.cnn.com/robots.txt http://www.bleacherreport.com/robots.txt");
+				LoadQueue.AddMessage(startMessage);
+				CloudQueueMessage state = new CloudQueueMessage("Loading");
+
 			}
-
-			LoadQueue = CloudConfiguration.GetLoadingQueue();
-
-			//Add message
-			CloudQueueMessage startMessage = new CloudQueueMessage("http://www.cnn.com/robots.txt http://www.bleacherreport.com/robots.txt");
-			LoadQueue.AddMessage(startMessage);
-
-			return LoadQueue.Name + " " + startMessage.AsString;
+			else
+			{
+				StopQueue.DeleteMessage(StopQueue.GetMessage());
+			}
+			return "start crawler method executed";
 		}
 
 		[WebMethod]
 		public string StopCrawler()
 		{
 			StopQueue = CloudConfiguration.GetStopQueue();
-			CloudQueueMessage stopSignal = new CloudQueueMessage("stop");
-			StopQueue.AddMessage(stopSignal);
-			return StopQueue.Name + " " + stopSignal.AsString;
+			StateQueue = CloudConfiguration.GetStateQueue();
+			if (StopQueue.PeekMessage() == null)
+			{
+				CloudQueueMessage stopSignal = new CloudQueueMessage("stop");
+				StopQueue.AddMessage(stopSignal);
+				if (StateQueue.PeekMessage() != null)
+				{
+					StateQueue.DeleteMessage(StateQueue.GetMessage());
+				}
+				CloudQueueMessage state = new CloudQueueMessage("Idle");
+				StateQueue.AddMessage(state);
+			}
+			return "stopped crawling";
 		}
 
 		[WebMethod]
@@ -121,6 +134,9 @@ namespace WebRole1
 			LoadQueue.DeleteIfExists();
 			CrawlQueue.DeleteIfExists();
 			StopQueue.DeleteIfExists();
+			AdminStatusTable.DeleteIfExists();
+			ErrorQueue.DeleteIfExists();
+
 		}
 
 		[WebMethod]
@@ -136,9 +152,18 @@ namespace WebRole1
 		[ScriptMethod(ResponseFormat = ResponseFormat.Json)]
 		public string GetErrors()
 		{
-			ErrorTable = CloudConfiguration.GetErrorTable();
-			var errors = AdminStatusTable.ExecuteQuery(new TableQuery<ErrorListEntity>()).ToList();
-			return new JavaScriptSerializer().Serialize(errors);
+			ErrorQueue = CloudConfiguration.GetErrorQueue();
+			if (ErrorQueue.PeekMessage() == null)
+			{
+				return "";
+			}
+			else
+			{
+				CloudQueueMessage error = ErrorQueue.GetMessage();
+				string errorMessage = error.ToString();
+				ErrorQueue.DeleteMessage(error);
+				return new JavaScriptSerializer().Serialize(errorMessage);
+			}
 		}
 
 	}

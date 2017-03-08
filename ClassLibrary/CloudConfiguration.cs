@@ -39,6 +39,22 @@ namespace Portable
 			return queue;
 		}
 
+		public static CloudQueue GetStateQueue()
+		{
+			CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
+			CloudQueue queue = queueClient.GetQueueReference("statequeue");
+			queue.CreateIfNotExists();
+			return queue;
+		}
+
+		public static CloudQueue GetErrorQueue()
+		{
+			CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
+			CloudQueue queue = queueClient.GetQueueReference("errorqueue");
+			queue.CreateIfNotExists();
+			return queue;
+		}
+
 		public static CloudTable GetSiteDataTable()
 		{
 			CloudTableClient tableClient = storageAccount.CreateCloudTableClient();

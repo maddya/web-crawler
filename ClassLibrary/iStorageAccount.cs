@@ -11,6 +11,5 @@ namespace Portable
 		void AddLinkToResults(string URL, string title, DateTime date);
 		void AddLinkForParsing(string URL);
 		void AddSitemap(string URL);
-		void AddErrorMessage(string message);
 	}
 }

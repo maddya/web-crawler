@@ -13,11 +13,6 @@ namespace Portable
 	{
 		private static ErrorListEntity Errors { get; set; }
 
-		public AzureStorage()
-		{
-			Errors = new ErrorListEntity();
-		}
-
 		public void AddLinkToResults(string URL, string title, DateTime date)
 		{
 			CloudTable table = CloudConfiguration.GetSiteDataTable();
@@ -53,14 +48,6 @@ namespace Portable
 			CloudQueue loadQueue = CloudConfiguration.GetLoadingQueue();
 			CloudQueueMessage message = new CloudQueueMessage(URL);
 			loadQueue.AddMessage(message);
-		}
-
-		public void AddErrorMessage(string message)
-		{
-			Errors.AddAnError(message);
-			TableOperation insertOperation = TableOperation.InsertOrReplace(Errors);
-			CloudTable table = CloudConfiguration.GetErrorTable();
-			table.ExecuteAsync(insertOperation);
 		}
 
 	}

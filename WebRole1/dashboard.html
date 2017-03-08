@@ -14,16 +14,18 @@
 <body>
 	<div class="container">
 		<button id="startButton" type="button" class="btn btn-primary">Start Crawling</button>
-		<button type="button" class="btn btn-primary">Stop Crawling</button>
-		<button type="button" class="btn btn-primary">Reset</button>
+		<button id="stopButton" type="button" class="btn btn-primary">Stop Crawling</button>
+		<button id="resetButton" type="button" class="btn btn-primary">Reset</button>
 		<p>Crawler is currently <span id="state">BLANK</span></p>
 		<p>CPU Utilization% = <span id="cpu"></span></p>
 		<p>RAM Available = <span id="ram"></span></p>
 		<p>Number URLs Crawled = <span id="numCrawled"></span></p>
 		<p>Number URLs Left to Crawl = <span id="numToCrawl"></span></p>
-		<p>Error URLs:<span id="errors"></span></p>
 		<button type="button" class="btn btn-primary" id="refresh">refresh</button>
 		<button type="button" class="btn btn-primary" id="refreshErrors">refresh errors</button>
+		<p>Last 10 URLs crawled:</p><ul id="last10"></ul>
+		<p>Errors:</p><ul id="errors"></ul>
+		
 	</div>
 
 	<script>
@@ -31,6 +33,55 @@
         	$("#refresh").trigger("click");
         	$("refreshErrors").trigger("click");
         }, 500);
+
+
+        $("#startButton").click(function () {
+        	$.ajax({
+        		type: "POST",
+        		url: "Admin.asmx/StartCrawler",
+        		data: "{}",
+        		contentType: "application/json; charset=utf-8",
+        		dataType: "json",
+        		success: function (msg) {
+        			console.log("success");
+        		},
+        		error: function (msg) {
+        			console.log("failure");
+        		}
+        	});
+        });
+        $("#stopButton").click(function () {
+        	$.ajax({
+        		type: "POST",
+        		url: "Admin.asmx/StopCrawler",
+        		data: "{}",
+        		contentType: "application/json; charset=utf-8",
+        		dataType: "json",
+        		success: function (msg) {
+        			console.log("success");
+        		},
+        		error: function (msg) {
+        			console.log("failure");
+        		}
+        	});
+        });
+        $("#resetButton").click(function () {
+        	$.ajax({
+        		type: "POST",
+        		url: "WebService1.asmx/ClearEverything",
+        		data: "{}",
+        		contentType: "application/json; charset=utf-8",
+        		dataType: "json",
+        		success: function (msg) {
+        			console.log("success");
+        		},
+        		error: function (msg) {
+        			console.log("failure");
+        		}
+        	});
+        });
+
+
 
         $("#refresh").click(function () {
         	$.ajax({
@@ -45,13 +96,20 @@
         			arr = arr.replace("{", "");
         			arr = arr.replace("}", "");
         			var data = arr.split(",");
+			        console.log(data);
         			$("#state").text(data[0].split(":")[1].replace("\"", "").replace("\"", ""));
         			$("#cpu").text(data[1].split(":")[1]);
         			$("#ram").text(data[2].split(":")[1]);
         			$("#numCrawled").text(data[3].split(":")[1]);
         			$("#numToCrawl").text(data[6].split(":")[1].replace("\"", "").replace("\"", ""));
-        			//console.log(arr);
-        		},
+			        var lastCrawled = data[5].replace("Last10Crawled", "").split(' ');
+			        $('#last10').empty();
+					for (var i = 0; i < lastCrawled.length; i++) {
+						var li = $('<li/>');
+						li.text(lastCrawled[i]);
+						$('#last10').append(li);
+					}
+		        },
         		error: function (msg) {
         			console.log("failure");
         		}
@@ -69,7 +127,12 @@
         			console.log("success");
         			var arr = msg.d;
         			console.log(arr);
-        		},
+			        if (arr.length > 0) {
+				        var li = $('<li/>');
+				        li.text(arr);
+				        $('#errors').append(li);
+			        }
+		        },
         		error: function (msg) {
         			console.log("failure");
         		}
